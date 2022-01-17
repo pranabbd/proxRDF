@@ -6,3 +6,4 @@ See Figure 4a in Huang; Zhang et al. J. Am. Chem. Soc. 2021, 143, 40, 16786–16
 DOI: https://doi.org/10.1021/jacs.1c08280
 
 1. The surace is attached to SiO2 substrate, the atoms of which are not of our interest. We will consider atoms of pTMAO, water, and ions.
+2. We have to choose the distance in Z-direction (perpendicular distance to the surface)
