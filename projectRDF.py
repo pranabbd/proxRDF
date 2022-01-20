@@ -111,7 +111,7 @@ class RDF(object):
             #pbcZip = list(zip(spij[frame], newxij[frame], newyij[frame], newzij[frame]))
             #pbcXYZ.append(pbcZip)
             #add all r for each frame    
-            dist.append(dq)
+            dist.extend(dq)
         #print(dist)
         #return(dist, pbcXYZ)
         return(dist)
