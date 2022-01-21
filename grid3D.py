@@ -22,14 +22,15 @@ class GridCenters(object):
 
     def find_prox_dist(self, coordA, coordIONS):
         xGrid, yGrid, zGrid = self.get_grid_centers()
-        xMax = len(xGrid)
-        yMax = len(yGrid)
-        zMax = len(zGrid)
+        xMax = int(self.cellSize["a"]/self.dx)
+        yMax = int(self.cellSize["b"]/self.dy)
+        zMax = int(self.cellSize["c"]/self.dz)
+        #print(xMax, yMax, zMax)
 
         dmin  = []
-        for i in range(0, 53):
-            for j in range(0, 49):
-                for k in range(0, 20):
+        for i in range(0, xMax):
+            for j in range(0, yMax):
+                for k in range(0, zMax):
                      centX, centY, centZ = (xGrid[i][j][k], yGrid[i][j][k], zGrid[i][j][k])
                      d      = []
                      count1, count2  = (0, 0)
@@ -50,12 +51,7 @@ class GridCenters(object):
                              xyzion = coordIONS[ion] 
                              spion, xion, yion, zion = (xyzion[0], xyzion[1], xyzion[2], xyzion[3])
                              diff = sqrt((centX - xion)**2 + (centY - yion)**2 + (centZ -zion)**2)
-                             #xiPBC, yiPBC, ziPBC, diffiPBC = pbcDistAB(centX, centY, centZ, xion, yion, zion, self.cellSize)
-                             #print(ion, xyzion)
                              if spion in self.rvdW['chemSP']  and diff <= self.rvdW['radii'][self.rvdW['chemSP'].index(spion)]:
-                         #if spion in self.rvdW['chemSP']  and diffiPBC <= self.rvdW['radii'][self.rvdW['chemSP'].index(spion)]:
-                                 #print(ion, centX, centY, centZ, diff)
-                                 #print(centX, centY, centZ, diffiPBC)
                                  count2 += 1
                      if count1 != 0 or count2 != 0: 
                          continue 
@@ -63,6 +59,5 @@ class GridCenters(object):
                          #print(min(d))
                          dmin.append(min(d))
                           
-        #print('WatOccGrids:', len(dmin))
         return(dmin)
 

@@ -12,11 +12,9 @@ class RDF(object):
         self.rdfType     =  rdfType
         self.dr          =  dr
         self.rMax        =  rMax
-        print('ZMAX', self.rMax)
         self.binEdges    =  arange(0., self.rMax + 0.5*self.dr, self.dr)
         self.numOf_dr    =  len(self.binEdges) - 1
         self.cellSize    =  cellSize
-        self.dFrame      =  [[]]
 
     def get_coord_ij(self, traj, frames, totAtom):
        #list for ref and target atoms' coordinates
@@ -77,53 +75,12 @@ class RDF(object):
         #print(xyzion) 
         return(xyzion) 
 
-    def get_rij(self, coordi, coordj):
-        dist, pbcXYZ = ([], [])
-        for frame in  range(len(coordi)):
-            xi, yi, zi  = (0, 0, 0)
-            dq, drq     = ([], [])
-            spij, newxij, newyij, newzij, xyzij = ([], [], [], [], [])
-            atomi = coordi[frame][11600][0]
-            xi    = coordi[frame][11600][1]
-            yi    = coordi[frame][11600][2]
-            zi    = coordi[frame][11600][3]
-            spj, newxj, newyj, newzj = ([], [], [], [])
-            for q in range(len(coordj[frame])):
-                atomj = coordj[frame][q][0]
-                xj    = coordj[frame][q][1]
-                yj    = coordj[frame][q][2]
-                zj    = coordj[frame][q][3]
-                #print('before', xj, yj, zj)
-                xjPBC, yjPBC, zjPBC = (0, 0, 0) #, rij = pbcDistAB(xi, yi, zi, xj, yj, zj, self.cellSize)
-                #print(atomj, rij)
-                rij = sqrt((0-zj)**2)
-                #print('after', xjPBC, yjPBC, zjPBC)
-                #print(atomj, rij)
-                spj.append(atomj)
-                newxj.append(xjPBC)
-                newyj.append(yjPBC)
-                newzj.append(zjPBC)
-                dq.append(rij)
-            spij.append(spj)
-            newxij.append(newxj)
-            newyij.append(newyj)
-            newzij.append(newzj)
-            #pbcZip = list(zip(spij[frame], newxij[frame], newyij[frame], newzij[frame]))
-            #pbcXYZ.append(pbcZip)
-            #add all r for each frame    
-            dist.extend(dq)
-        #print(dist)
-        #return(dist, pbcXYZ)
-        return(dist)
-
     def get_prox_rij(self, coordi, coordj, coordIONS, grid):
         pdist, pgridDist, patoms, pmax, pgmax, pcount  = ([], [], [], [], [], [])
         for frame in  range(len(coordi)):
             xi, yi, zi           = (0, 0, 0)
             surfAtoms, dpq, pind = ([], [], [])
             #solvent
-            print('WATER:', (len(coordj[frame])))
-            print('TMAO:', (len(coordi[frame])))
             for p in range(len(coordj[frame])):
                 atomj = coordj[frame][p][0]
                 xj    = coordj[frame][p][1]
@@ -163,21 +120,8 @@ class RDF(object):
            if min(pdist[fm]) < min(pgridDist[fm]):
                print('frame :', fm+1," ", 'prox_min = ', min(pdist[fm])," ", 'proxGrid_min = ', min(pgridDist[fm]))
                print('Larger grid size. Make it smaller. Otherwise, you might have an error in calculating pg(r)')
-           #if max(pdist[fm]) > max(pgridDist[fm]):
-           #    print(fm," ", max(pdist[fm])," ", max(pgridDist[fm]))
 
         return(pdist, pcount, pgridDist)
-
-    def get_timeAvg_dist(self, dist, frames):
-        g = zeros(self.numOf_dr)
-        for frame in  range(0, frames):                
-            (natom, bins) = histogram(dist[frame], bins=self.binEdges, normed=False)
-            gTot   = np.add(g, natom)
-            g      = gTot
-
-        #time averqge    
-        gAvg = gTot / frames
-        return(gAvg)
 
     def get_timeAvg_pgij(self, pdist, pgridDist, frames, atomsj):
         self.binEdges = arange(0., self.rMax + 0.5 * self.dr, self.dr)
@@ -194,11 +138,8 @@ class RDF(object):
             #print('FRAME#',frame) 
             for i in range(self.numOf_dr):
                 radii[i] = round((self.binEdges[i] + self.binEdges[i+1]) / 2.,3)
-                #print('r:', radii[i], 'CN:', natom[i]) 
             #print(natom)
-            #prho  = round((pcount[frame]*atomsj / vol),3)
             prho  = round((atomsj / vol),3)
-            #gNorm = natom / prho
             gNorm = natom
             gTot  = np.add(g, gNorm)
             g     = gTot
@@ -221,9 +162,9 @@ class RDF(object):
                pgij[i] =  0
             else:
                 pgij[i] = round((gAvg[i]) / voli, 3)
-                print(radii[i], pgij[i])
+                #print(radii[i], pgij[i])
 
-            if radii[i] >= 0.7*self.rMax and radii[i] <= self.rMax:
+            if radii[i] >= 10 and radii[i] <= 15:
                 bulkj.append(pgij[i])
 
         tot = 0

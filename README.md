@@ -30,3 +30,12 @@ How it works:
 5. zmin = the lowest z of all TMAO/water atoms; zmax = the highest z of water atoms
 
 6. In the ion case, we may exclude the volumes occupied by the ion atoms
+
+7. The code will generate a plot as well as a 'surfPGR.dat' data file 
+
+
+How to run:
+
+python surf_pRDF.py test.xyz
+
+

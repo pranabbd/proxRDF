@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# A python script to calculate surface hydration (pG(r)) written by Pranab Sarker
+# Contact: srpranab@gmail.com
+# See Figure 4a in Huang; Zhang et al. J. Am. Chem. Soc. 2021, 143, 40, 16786–16795
+# DOI: https://doi.org/10.1021/jacs.1c08280
+
 import sys
 import numpy as np
 from   numpy import arange, histogram, zeros, pi, where, sqrt
@@ -7,10 +12,9 @@ import grid3D as gd3
 from   itertools import chain
 from   projectRDF import RDF
 
-############### SYSTEM INFO  ###################
+############### CALCULATION SETUP BEGIN ######################
 #total atoms in the system 
 tot  =  81138 
-
 #vdW radii
 rvdW     =  {
     'chemSP' : ['C', 'H', 'N', 'O', 'Na', 'Cl', 'Si'],
@@ -20,33 +24,67 @@ rvdW     =  {
 ions     =  {
     'type' : ['Na', 'Cl'],
 }
-
-############### CALCULATION SETUP ###################
-#rdfType    =  'gij'  #partial rdf
-rdfType    =  'pgij'  #proximal rdf
-typei      =  'O'    #modify this according to your need (only for rdfType = 'gij') 
-typej      =  'O'
-dr         =   0.2     #bin siz
-#assuming that substrate atoms are placed first in the trajectory file
-# we will be ignoring those atoms, as those do contribute to the hydration
-#reference atom to separate substrate atoms from the brush/water/ion atoms
-#refIndex = index to the reference atom; atoms with indices => refIndex are of our interest 
+rdfType    =  'pgij'   # proximal rdf
+typei      =  'solute' # solute molecule 
+typej      =  'O'      # solvent atom, O -----> H2O
+dr         =   0.2     # bin siz
+#Assuming that substrate atoms are placed first in the trajectory file
+#we will be ignoring those atoms, as those do not contribute to the hydration
+#Reference atom must be provided to separate substrate+connector atoms from the brush/water/ion atoms
+#refIndex = index of the reference atom; atoms with indices => refIndex are of our interest 
 refIndex   =  33600 #tmao_5
-#initialize box size and rmax; these will be updated later
-rMax       =   0        #8.1      #maximum radial distance(rcut-off)
-xa, yb, zc =  (85.86, 79.38, 0)
-cell_size =  {
+
+#set box size and rmax here or set 'AUTO' to let the code automatically determine those
+#set the maximum radial distance(rcut-off) to calculate RDF as a function of r
+rMax_user  = 15   
+#rMax_user = 'AUTO'   
+#set the lower and upper cutoffs of zdist
+zmin_user  = 36   #lower cutoff 
+#zmin_user  = 'AUTO'   #lower cutoff 
+zmax_user  = 68.4 #upper cutoff 
+#zmax_user  = 'AUTO' #upper cutoff 
+#_____________________________________________________________________________________
+if rMax_user == 'AUTO':
+    rMax = 0 # initialize now and update later after calculating zdist; rMax = 0.5*zdist
+             # assuming that zdist => 30 angs.; if zdist < 30 angs., set rMax => 15 angs
+             # this code will use bulk density of water within r = 10 and r = 15 angs
+else:
+    rMax = rMax_user
+
+if zmin_user == 'AUTO' or zmax_user == 'AUTO':
+    zdist_user = 0      #initialize now and update later after calculating zmin/zmax
+else:
+    zdist_user = zmax_user - zmin_user
+#_____________________________________________________________________________________
+#set cell size
+xa, yb, zc =  (85.86, 79.38, zdist_user)
+cell_size  =  {
     "a" : xa,
     "b" : yb,
     "c" : zc
 }
+
+#choose grid-size: dx/dy/dz ~vdW radii 
+dx, dy, dz   =  (1.62, 1.62, 1.62)
+#dx, dy, dz =  (2, 2, 2)
+gridVol      = dx*dy*dz
+
+#ion-case
+#choose how the ions will be treated: visible or invisible?
+#if visible,  the occupied volumes of ions will be considered
+#if invisible,  the occupied volumes of ions will be ignored
+#when ions are invisible
+ionExcVol    = 'NO' #default
+#when ions are visible
+#ionExcVol    = 'YES'
+############### CALCULATION SETUP END ########################
 
 ############### SIMULATION DATA PROCESSING ###################
 #get the trajectory file from command line
 try:
     f = sys.argv[1]
 except:
-    print('Error: wrong input file on the command line')
+    print('Error: no input file provided')
     sys.exit(1)
 #load trajectory file
 def divide_chunks(l, n):
@@ -59,14 +97,13 @@ totAtom  = int(trajFile[0])
 print('total atoms:', totAtom)
 #check the input file
 if tot  != totAtom:
-    print('Wrong input file. Check your system and input file.')
+    print('Wrong input file provided. The total atoms do not match')
     exit(1)
 else:
     traj     = list(divide_chunks(trajFile, totAtom + 2))
     frames   = int((len(trajFile) / (totAtom + 2)))
 
-############### ION COORDINATES ###################
-#get ions
+#get ions coordinates
 line  =  traj[0][2:totAtom+2]
 data  =  [i.split() for i in line]
 sp    =  [j[0] for j in data]
@@ -76,9 +113,9 @@ for name in range(len(ions['type'])):
         xyzions =  rdf.get_coord_ions(traj, frames, totAtom) 
     else:
         xyzions = zeros(frames)
-#print('ions:', xyzions[0])
+#if we want to ignore ions
+xyzions_none = zeros(frames)
 
-############### POLYMER/WATER COORDINATES ###################
 # separte atoms of polymer brush and water
 sep             = RDF(refIndex, ions, rdfType, dr, rMax, cell_size)
 poly, wat       = sep.get_coord_ij(traj, frames, totAtom)
@@ -109,29 +146,53 @@ for fm in range(frames):
 surfLOW      = int(min(zmin))
 surfHIGH     = int(max(zwmax))
 polyMAX      = int(max(zmax))
-print('LOW', surfLOW, 'HIGH', surfHIGH, 'INTF', polyMAX)
+print('zlow@', surfLOW, 'zhigh@', surfHIGH, 'interface@', polyMAX, 'all dimension in angstrom')
 
-############### SET UPPER AND LOWER LIMIT OF Z HERE #############################
-############### Z-DISTANCE AND 3D-GRID SETUP ####################################
-zlow    = 36   #or surfLOW
-zhigh   = 68.4 #surfHIGH
-zdist   = abs(zhigh-zlow) #surfHIGH - surfLOW
-#update box-size and rmax
-cell_size['c'] = zdist
-rMax    = 0.5*zdist
-#choose grid-size: dx/dy/dz ~vdW radii 
-#and ensure boxSize_a / dx = integer, boxSize_b / dy = integer, and zdist / dz = integer
-#dx, dy, dz = (0.81, 0.81, 0.81)
-dx, dy, dz   =  (1.62, 1.62, 1.62)
-#dx, dy, dz =  (2, 2, 2)
-gridVol      = dx*dy*dz
-grid         =  gd3.GridCenters(dx, dy, dz, rvdW, zlow, zhigh, cell_size)
-#################################################################################
-#################################################################################
+############### UPDATE UPPER AND LOWER LIMIT OF Z  #############################
+#update box-size and rmax if zmim/zmax are not user-defined
+if zmin_user == 'AUTO' and  zmax_user != 'AUTO':
+    zlow    = zmin_user
+    zhigh   = surfHIGH
+    zdist   = zhigh - zlow
+    cell_size['c'] = zdist
+    rMax    = 0.5*zdist
+elif zmin_user != 'AUTO' and  zmax_user == 'AUTO':
+    zlow    = surfLOW
+    zhigh   = zmax_user
+    zdist   = zhigh - zlow
+    cell_size['c'] = zdist
+    rMax    = 0.5*zdist
+elif zmin_user == 'AUTO' and  zmax_user == 'AUTO':
+    zlow    = surfLOW
+    zhigh   = surfHIGH 
+    zdist   = zhigh - zlow
+    cell_size['c'] = zdist
+    rMax    = 0.5*zdist
+else:
+    zlow    = zmin_user
+    zhigh   = zmax_user
+
+#ensure boxSize_a / dx = integer, boxSize_b / dy = integer, and zdist / dz = integer
+rmdx1 = round(cell_size['a'] / dx, 2)
+rmdx2 = round(cell_size['a'] / dx, 0)
+diffx = rmdx1 - rmdx2
+rmdy1 = round(cell_size['b'] / dy, 2)
+rmdy2 = round(cell_size['b'] / dy, 0)
+diffy  = rmdy1 - rmdy2
+rmdz1 = round(cell_size['c'] / dz, 2)
+rmdz2 = round(cell_size['c'] / dz, 0)
+diffz = rmdz1 - rmdz2
+
+#update cellsize to have integer grids in x, y, and z directions
+cell_size_grid  =  {
+    "a" : xa-diffx,
+    "b" : yb-diffy,
+    "c" : zc-diffz
+}
 
 ############### ATOMS WITHIN THE SURFACE CUTOFF (Z-DISTANCE)  ###################
 #selected atoms above zmin and below zmax
-#set user defined zmin/zmax or zmin/zmax from each snapshot
+#set user-defined zmin/zmax or zmin/zmax from each snapshot
 polys = []
 wats  = []
 IONs  = []
@@ -156,13 +217,14 @@ for fm in range(frames):
     wats.append(ws)
 
 ######### PG(R) CALCULATION  #################################
-#no ion consideration
-#no exclusion of ion-volume
-xyzions_none = zeros(frames)
+#grid set-up
+grid         =  gd3.GridCenters(dx, dy, dz, rvdW, zlow, zhigh, cell_size_grid)
 rdf          = RDF(refIndex, ions, rdfType, dr, rMax, cell_size)
-pd, pnt, pgd =  rdf.get_prox_rij(polys, wats, xyzions_none, grid)
-# exclusion of ion-volume
-#pd, pnt, pgd    =  rdf.get_prox_rij(polys, wats, xyzions, grid)
+if ionExcVol == 'NO':
+    pd, pnt, pgd =  rdf.get_prox_rij(polys, wats, xyzions_none, grid)
+#exclusion of ion-volume
+elif ionExcVol == 'YES':
+    pd, pnt, pgd    =  rdf.get_prox_rij(polys, wats, xyzions, grid)
 pgr, uoccgrd =  rdf.get_timeAvg_pgij(pd, pgd, frames, len(wats[0]))
 #print(pgr.tolist())
 #print(uoccgrd.tolist())
@@ -172,12 +234,14 @@ pgr_norm, r  =  rdf.get_norm_pgij(pgr, uoccgrd, gridVol)
 
 ######### WRITE PG(R) DATA  #################################
 with open('surfPGR.dat', 'w') as f:
+    f.write(str('#r') + "\t" + str('pG()r'))
+    f.write("\n")
     for i  in range(len(r)):
-        f.write(str(r[i])+ "\t"+str(pgr_norm[i])) #+"\t"+str(n_r[i]))
+        f.write(str(r[i])+ "\t"+str(pgr_norm[i])) 
         f.write("\n")
 f.close()
 
-######### VISUALIZE  #################################
+######### VISUALIZE  PG(R) ##################################
 plt.figure()
 plt.rcParams.update({'font.size': 22})
 plt.plot(r, pgr_norm, color='black')
