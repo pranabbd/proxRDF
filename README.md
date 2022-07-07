@@ -1,19 +1,21 @@
-NOTE: This is a python code to calculate the proximal radial distribution function (pRDF or pG(r)) of a surface. 
+# Surface Hydration Calculation: 
+This is a python code to calculate the proximal radial distribution function (pRDF or pG(r)) of a surface. 
 Here, the code is used to analyze the molecular dynamics hydration data of a zwitterionic surface (polymer-brush). The surface
 is made with a polymer chain of TMAO (pTMAO). The generated pG(r) for the pTMAO surface is published in the following JACS article.
 
 Huang; Zhang et al. J. Am. Chem. Soc. 2021, 143, 40, 16786–16795 (See Figure 4a)
-DOI: https://doi.org/10.1021/jacs.1c08280
+[!DOI]](https://doi.org/10.1021/jacs.1c08280)
 
 
-pG(r): pG(r) is a RDF for systems of irregular shape. It is calculated by taking the minimal distance between the solute-atoms 
+## pG(r) 
+pG(r) is a RDF for systems of irregular shape. It is calculated by taking the minimal distance between the solute-atoms 
 and a refence atom (e.g., water-oxygen). This step is repeated for N solvent molecules. Since the solute is non-spherical, we
 cannot obtain the local density by dividing the spherical shell volume as in standard RDF caculation. Here, we calculate the 
 grid volume occupied by the solvent atoms in r and r+dr and divide the solvent atoms in that interval to get the local density. 
 Finally, we normlize the local density by dividing the bulk density, averaged over distances between 10 and 15 angstrom.  
 
-How it works:
-1. The surface is attached to SiO2 substrate via -(CH2)10 connectors, 
+## How it works 
+1. In the `test.xyz` file, there is a surface of polymer-TMAO ( or TMAO-polymer brush). The surface is attached to SiO2 substrate via -(CH2)10 connectors, 
    the atoms of which are not of our interest. We will only consider atoms of pTMAO, water, and ions.
 
 2. This code will separate TMAO, water, ion-atoms from the SiO2 and connector atoms upon providing a reference index.
@@ -34,8 +36,8 @@ How it works:
 7. The code will generate a plot as well as a 'surfPGR.dat' data file 
 
 
-How to run:
+## How to run
 
-python surf_pRDF.py test.xyz
+``` python surf_pRDF.py test.xyz ```
 
 
