@@ -1,4 +1,4 @@
-# Surface Hydration Calculation: 
+# Surface Hydration Calculation 
 This is a python code to calculate the proximal radial distribution function (pRDF or pG(r)) of a surface. 
 Here, the code is used to analyze the molecular dynamics hydration data of a zwitterionic surface (polymer-brush). The surface
 is made with a polymer chain of TMAO (pTMAO). The generated pG(r) for the pTMAO surface is published in the following JACS article.
