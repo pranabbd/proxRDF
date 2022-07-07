@@ -29,11 +29,11 @@ Finally, we normlize the local density by dividing the bulk density, averaged ov
 4. The zval of the box dimesion will be initialized with 0. After determining zmin and zmax, zdist will set as zval.
    Alternatively, the user can also set customized zmin/zmax value to get user-defined zdist.
 
-5. zmin = the lowest z of all TMAO/water atoms; zmax = the highest z of water atoms
+5. zmin = the lowest z of all TMAO/water atoms; zmax = the highest z of water atoms.
 
-6. In the ion case, we may exclude the volumes occupied by the ion atoms
+6. In the ion case, we may exclude the volumes occupied by the ion atoms.
 
-7. The code will generate a plot as well as a 'surfPGR.dat' data file 
+7. The code will generate a plot as well as a 'surfPGR.dat' data file. 
 
 
 ## How to run
