@@ -31,7 +31,7 @@ dr         =   0.2     # bin siz
 #Assuming that substrate atoms are placed first in the trajectory file
 #we will be ignoring those atoms, as those do not contribute to the hydration
 #Reference atom must be provided to separate substrate+connector atoms from the brush/water/ion atoms
-#refIndex = index of the reference atom; atoms with indices => refIndex are of our interest 
+#refIndex = index of the reference atom (e.g., the last surface-atom); atoms with indices => refIndex are of our interest 
 refIndex   =  33600 #tmao_5
 
 #set box size and rmax here or set 'AUTO' to let the code automatically determine those
@@ -39,7 +39,7 @@ refIndex   =  33600 #tmao_5
 rMax_user  = 15   
 #rMax_user = 'AUTO'   
 #set the lower and upper cutoffs of zdist
-zmin_user  = 36   #lower cutoff 
+zmin_user  =  36   #lower cutoff 
 #zmin_user  = 'AUTO'   #lower cutoff 
 zmax_user  = 68.4 #upper cutoff 
 #zmax_user  = 'AUTO' #upper cutoff 
@@ -108,9 +108,10 @@ line  =  traj[0][2:totAtom+2]
 data  =  [i.split() for i in line]
 sp    =  [j[0] for j in data]
 #get xyz for ions if there is any
+crd             = RDF(refIndex, ions, rdfType, dr, rMax, cell_size)
 for name in range(len(ions['type'])):
     if ions['type'][name] in sp:
-        xyzions =  rdf.get_coord_ions(traj, frames, totAtom) 
+        xyzions =  crd.get_coord_ions(traj, frames, totAtom) 
     else:
         xyzions = zeros(frames)
 #if we want to ignore ions
@@ -146,7 +147,7 @@ for fm in range(frames):
 surfLOW      = int(min(zmin))
 surfHIGH     = int(max(zwmax))
 polyMAX      = int(max(zmax))
-print('zlow@', surfLOW, 'zhigh@', surfHIGH, 'interface@', polyMAX, 'all dimension in angstrom')
+print('zlow@', surfLOW, 'zhigh@', surfHIGH, 'interface@', polyMAX, 'all dimensions in angstrom')
 
 ############### UPDATE UPPER AND LOWER LIMIT OF Z  #############################
 #update box-size and rmax if zmim/zmax are not user-defined
@@ -234,7 +235,7 @@ pgr_norm, r  =  rdf.get_norm_pgij(pgr, uoccgrd, gridVol)
 
 ######### WRITE PG(R) DATA  #################################
 with open('surfPGR.dat', 'w') as f:
-    f.write(str('#r') + "\t" + str('pG()r'))
+    f.write(str('#r') + "\t" + str('pG(r)'))
     f.write("\n")
     for i  in range(len(r)):
         f.write(str(r[i])+ "\t"+str(pgr_norm[i])) 
